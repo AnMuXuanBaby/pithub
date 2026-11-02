@@ -197,7 +197,7 @@ public final class PhotoNodePlugin: PitHubPlugin {
                 return
             }
             _ = host.thumbnailCache.store(data: data, forKey: cacheKey)
-            respond(jpegResponse(data, action: "photo-thumb"))
+            respond(self.jpegResponse(data, action: "photo-thumb"))
         }
     }
 
