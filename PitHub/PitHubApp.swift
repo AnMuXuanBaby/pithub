@@ -31,7 +31,7 @@ final class LockStateCoordinator {
         self.runtime = runtime
         let center = NotificationCenter.default
         observers.append(center.addObserver(
-            forName: UIApplication.protectedDataDidBecomeUnavailableNotification,
+            forName: UIApplication.protectedDataWillBecomeUnavailableNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
