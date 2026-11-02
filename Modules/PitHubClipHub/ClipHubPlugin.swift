@@ -94,7 +94,7 @@ final class ClipHubStore {
         let id = Self.randomToken(length: 20)
         let cleanName = filename.isEmpty ? (normalizedKind == "image" ? "clip-image.jpg" : "clip.bin") : filename.sanitizedFileName
         let cleanMime = mime.isEmpty ? PitHubMIME.type(for: cleanName) : mime
-        let cleanTags = tags.map { $0.trimmed }.filter { !$0.isEmpty }.prefix(12).map(String.init)
+        let cleanTags = tags.map { $0.trimmed }.filter { !$0.isEmpty }.prefix(12).map { String($0) }
 
         var blobWritten = false
         if normalizedKind != "text" {
