@@ -93,7 +93,7 @@ public final class PhotoNodePlugin: PitHubPlugin {
                 "ok": true,
                 "authorized": library.isAuthorized,
                 "authorizationStatus": authorizationStatusText(library.authorizationStatus),
-                "allowedAlbumIDs": settings.photoNode.allowedAlbumIDs
+                "allowedAlbumIDs": context.role == .guest ? [] : settings.photoNode.allowedAlbumIDs
             ]))
 
         default:

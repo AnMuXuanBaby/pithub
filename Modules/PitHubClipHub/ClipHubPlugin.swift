@@ -460,7 +460,7 @@ public final class ClipHubPlugin: PitHubPlugin {
                 respond(.json([
                     "ok": true,
                     "count": store.count,
-                    "maxRecords": context.settings.clipHub.maxRecords
+                    "maxRecords": context.role == .guest ? 0 : context.settings.clipHub.maxRecords
                 ]))
 
             default:

@@ -236,6 +236,7 @@ public final class DashLinkPlugin: PitHubPlugin {
 
         switch route {
         case "buttons":
+            guard context.role >= .user else { respond(.error(403, "快捷指令配置仅登录用户可见")); return }
             guard request.method == "GET" else { respond(.error(405, "仅支持 GET")); return }
             let buttons = store.allButtons().map { button -> [String: Any] in
                 button.jsonObject(cooldownRemaining: cooldownRemaining(button: button, settings: settings, store: store))

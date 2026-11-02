@@ -578,7 +578,17 @@ public final class PitHubRuntime: ObservableObject, PitHubPluginHost {
 
     func statusJSON(role: PitHubRole) -> [String: Any] {
         let settings = settingsStore.current
+        let restricted = role == .guest
         let traffic = trafficStats.jsonObject()
+        let tunnelJSON: [String: Any] = restricted
+            ? [
+                "provider": "none",
+                "providerName": "访客只读",
+                "active": false,
+                "publicURL": "",
+                "message": "登录后可查看隧道配置"
+            ]
+            : tunnel.jsonObject()
         let plugins = pluginDescriptors.map { descriptor -> [String: Any] in
             [
                 "id": descriptor.id,
@@ -598,14 +608,14 @@ public final class PitHubRuntime: ObservableObject, PitHubPluginHost {
         }
         return [
             "online": isRunning,
-            "version": "1.0.0",
-            "serverName": settings.bonjourName,
-            "port": port,
-            "localURL": localURL,
-            "lanHost": PitHubNetworkInfo.primaryIPv4() ?? "",
-            "bonjour": "_pithub._tcp",
-            "tunnel": tunnel.jsonObject(),
-            "shareBaseURL": shareBaseURL,
+            "version": "1.1.0",
+            "serverName": restricted ? "PitHub" : settings.bonjourName,
+            "port": restricted ? 0 : port,
+            "localURL": restricted ? "" : localURL,
+            "lanHost": restricted ? "" : (PitHubNetworkInfo.primaryIPv4() ?? ""),
+            "bonjour": restricted ? "" : "_pithub._tcp",
+            "tunnel": tunnelJSON,
+            "shareBaseURL": restricted ? "" : shareBaseURL,
             "connections": activeConnections,
             "traffic": traffic,
             "trafficText": [
@@ -615,13 +625,13 @@ public final class PitHubRuntime: ObservableObject, PitHubPluginHost {
             ],
             "plugins": plugins,
             "role": role.rawValue,
-            "backgroundPolicy": settings.backgroundPolicy.rawValue,
-            "preventAutoLock": settings.preventAutoLock,
+            "backgroundPolicy": restricted ? "" : settings.backgroundPolicy.rawValue,
+            "preventAutoLock": restricted ? false : settings.preventAutoLock,
             "guestEnabled": settings.guestEnabled,
             "defaultPassword": settings.isDefaultPassword,
             "startedAt": startedAt.map { PitHubFormat.iso($0) } ?? "",
             "uptime": uptime,
-            "cacheBytes": cache.totalBytes + thumbnailCache.totalBytes
+            "cacheBytes": restricted ? 0 : (cache.totalBytes + thumbnailCache.totalBytes)
         ]
     }
 }

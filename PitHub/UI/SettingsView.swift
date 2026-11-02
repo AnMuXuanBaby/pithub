@@ -308,7 +308,7 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         Section {
-            LabeledContent("版本", value: "PitHub 1.0.0")
+            LabeledContent("版本", value: "PitHub 1.1.0")
             LabeledContent("WebDAV", value: "\(runtime.shareBaseURL)/webdav")
             LabeledContent("默认密码", value: "pithub")
             Button("打开网页控制台") {

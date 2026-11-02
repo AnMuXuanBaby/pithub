@@ -237,6 +237,7 @@ export const api = {
     { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, onProgress }
   ),
   downloadFileURL: (path, inline) => apiURL('/api/file/download' + query({ path, inline: inline ? 1 : 0 })),
+  filePreviewURL: (path, max = 2048) => apiURL('/api/file/preview' + query({ path, max })),
   zipURL: (path) => apiURL('/api/file/zip' + query({ path })),
   downloadViaFetch: (path, filename) => downloadBlob('/api/file/download' + query({ path }), filename),
 

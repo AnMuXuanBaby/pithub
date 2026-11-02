@@ -267,6 +267,16 @@ public final class FilePitPlugin: PitHubPlugin {
             store.downloadResponse(path: path, role: context.role, settings: context.settings,
                                    inline: inline, photoResource: resource, completion: respond)
 
+        case "preview":
+            guard request.method == "GET" || request.method == "HEAD" else {
+                respond(.error(405, "仅支持 GET")); return
+            }
+            let path = request.query["path"] ?? ""
+            guard !path.isEmpty else { respond(.error(400, "缺少 path 参数")); return }
+            let maxPixel = Int(request.query["max"] ?? "2048") ?? 2048
+            store.previewResponse(path: path, role: context.role, settings: context.settings,
+                                  maxPixel: maxPixel, completion: respond)
+
         case "zip":
             guard request.method == "GET" else { respond(.error(405, "仅支持 GET")); return }
             let path = request.query["path"] ?? ""

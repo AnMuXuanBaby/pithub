@@ -183,7 +183,7 @@ function listHTML() {
       ${fp.entries.map((entry) => {
         const selected = fp.selected.has(entry.path);
         const thumb = isImage(entry)
-          ? `<img src="${api.downloadFileURL(entry.path, true)}" loading="lazy" alt="" class="w-full h-full object-cover">`
+          ? `<img src="${api.filePreviewURL(entry.path, 512)}" loading="lazy" alt="" class="w-full h-full object-cover">`
           : icon(fileIcon(entry), 'w-4 h-4');
         return `
           <div class="file-row ${selected ? 'selected' : ''}" data-entry-path="${escapeAttr(entry.path)}" data-entry-dir="${entry.isDirectory ? '1' : '0'}">
@@ -210,7 +210,7 @@ function gridHTML() {
       ${fp.entries.map((entry) => {
         const selected = fp.selected.has(entry.path);
         const thumb = isImage(entry)
-          ? `<img src="${api.downloadFileURL(entry.path, true)}" loading="lazy" alt="">`
+          ? `<img src="${api.filePreviewURL(entry.path, 512)}" loading="lazy" alt="">`
           : `<div class="w-full h-full flex items-center justify-center" style="color:var(--muted)">${icon(fileIcon(entry), 'w-9 h-9')}</div>`;
         return `
           <div class="file-grid-card ${selected ? 'ring-2' : ''}" data-entry-path="${escapeAttr(entry.path)}" data-entry-dir="${entry.isDirectory ? '1' : '0'}"
@@ -318,6 +318,13 @@ function bindMain() {
     });
   });
   main.querySelectorAll('[data-entry-path]').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('input, button, a, select, textarea')) return;
+      const entry = fp.entries.find((item) => item.path === row.dataset.entryPath);
+      if (!entry) return;
+      if (entry.isDirectory) loadDirectory(entry.path);
+      else openPreview(entry);
+    });
     row.addEventListener('contextmenu', (event) => {
       event.preventDefault();
       const entry = fp.entries.find((item) => item.path === row.dataset.entryPath);
@@ -448,6 +455,7 @@ async function openPreview(entry) {
   if (entry.isDirectory) { loadDirectory(entry.path); return; }
   const kind = String(entry.kind || 'file');
   const inlineURL = api.downloadFileURL(entry.path, true);
+  const imagePreviewURL = api.filePreviewURL(entry.path, 2048);
 
   if (kind === 'text') {
     const dialog = modal({
@@ -473,8 +481,18 @@ async function openPreview(entry) {
 
   if (kind === 'image' || kind === 'pdf' || kind === 'video' || kind === 'audio') {
     let content = '';
-    if (kind === 'image') content = `<img src="${inlineURL}" alt="${escapeHtml(entry.name)}" class="max-h-[72vh] mx-auto rounded-xl object-contain">`;
-    if (kind === 'video') content = `<video src="${inlineURL}" controls autoplay playsinline class="max-h-[72vh] w-full rounded-xl bg-black"></video>`;
+    if (kind === 'image') {
+      content = `
+        <div class="text-center">
+          <img src="${imagePreviewURL}" alt="${escapeHtml(entry.name)}" class="max-h-[72vh] mx-auto rounded-xl object-contain">
+          <div class="text-[0.66rem] muted mt-2">HEIC/HEIF 会自动转成 JPEG；如果仍无法显示，请下载原文件。</div>
+        </div>`;
+    }
+    if (kind === 'video') {
+      content = `
+        <video src="${inlineURL}" controls autoplay playsinline class="max-h-[72vh] w-full rounded-xl bg-black"></video>
+        <div class="text-[0.66rem] muted mt-2">浏览器不支持 MOV/HEVC 时请下载后用系统播放器打开。</div>`;
+    }
     if (kind === 'audio') content = `<div class="p-6"><audio src="${inlineURL}" controls class="w-full"></audio><div class="text-center mt-4">${escapeHtml(entry.name)}</div></div>`;
     if (kind === 'pdf') content = `<iframe src="${inlineURL}" class="w-full h-[72vh] rounded-xl border-0" title="${escapeHtml(entry.name)}"></iframe>`;
     const dialog = modal({

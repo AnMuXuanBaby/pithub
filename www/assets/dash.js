@@ -13,6 +13,14 @@ const dash = { buttons: [], runs: [], cooldown: 0, error: '' };
 function isUser() { return state.auth && (state.auth.role === 'user' || state.auth.role === 'admin'); }
 
 export async function renderDash() {
+  if (!isUser()) {
+    renderShell('dash', 'DashLink', `
+      <div class="glass p-8 text-center">
+        <div class="text-[0.95rem] font-semibold mb-2">需要用户或管理员权限</div>
+        <div class="text-[0.72rem] muted">快捷指令按钮属于配置与执行能力，访客不可查看。</div>
+      </div>`);
+    return;
+  }
   renderShell('dash', 'DashLink', layoutHTML());
   bindStatic();
   await load();

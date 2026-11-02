@@ -736,6 +736,119 @@ final class FilePitStore {
         }
     }
 
+    /// 浏览器在线预览图片：HEIC/HEIF 统一转成 JPEG；相册文件走 PhotoKit 缩略图。
+    func previewResponse(path: String, role: PitHubRole, settings: PitHubSettings,
+                         maxPixel: Int, completion: @escaping (HTTPResponse) -> Void) {
+        let pixel = max(64, min(2048, maxPixel))
+        let components = split(path)
+
+        if components.first?.lowercased() == "photos" {
+            guard settings.filePit.allowPhotoMount else {
+                completion(HTTPResponse.error(404, "相册挂载未开启"))
+                return
+            }
+            guard components.count == 3,
+                  let albumID = Self.decodePhotoToken(components[1]),
+                  let assetID = Self.decodePhotoToken(Self.stripExtension(components[2])) else {
+                completion(HTTPResponse.error(400, "相册预览路径无效"))
+                return
+            }
+            let allowedAlbums = settings.photoNode.allowedAlbumIDs
+            if !allowedAlbums.isEmpty && !allowedAlbums.contains(albumID) {
+                completion(HTTPResponse.error(403, "该相册未开启共享"))
+                return
+            }
+            guard let host else {
+                completion(HTTPResponse.error(503, "服务未就绪"))
+                return
+            }
+            let library = host.photoLibrary
+            guard library.isAuthorized else {
+                completion(HTTPResponse.error(403, "相册权限未开启"))
+                return
+            }
+            if let allowed = library.allowedAssetIdentifiers(allowedAlbumIDs: allowedAlbums),
+               !allowed.contains(assetID) {
+                completion(HTTPResponse.error(403, "该照片所在相册未开启共享"))
+                return
+            }
+            guard let info = library.assetInfo(identifier: assetID) else {
+                completion(HTTPResponse.error(404, "照片不存在"))
+                return
+            }
+            let cacheKey = "photo-preview:\(assetID):\(pixel):\(Int(info.modifiedAt.timeIntervalSince1970))"
+            if let cached = host.thumbnailCache.data(forKey: cacheKey) {
+                completion(jpegResponse(cached, maxAge: 3600))
+                return
+            }
+            library.thumbnailData(identifier: assetID, maxPixel: CGFloat(pixel), quality: 0.82) { data in
+                guard let data else {
+                    completion(HTTPResponse.error(415, "无法生成相册预览"))
+                    return
+                }
+                _ = host.thumbnailCache.store(data: data, forKey: cacheKey)
+                completion(self.jpegResponse(data, maxAge: 3600))
+            }
+            return
+        }
+
+        do {
+            let location = try resolveFS(path: path, role: role, settings: settings, write: false)
+            let fm = FileManager.default
+            var isDirectory: ObjCBool = false
+            guard fm.fileExists(atPath: location.url.path, isDirectory: &isDirectory), !isDirectory.boolValue else {
+                throw FilePitError.notFound("文件不存在")
+            }
+            let name = location.url.lastPathComponent
+            let ext = name.pathExtensionLowercased
+            if ext == "svg" {
+                var response = HTTPResponse.file(
+                    url: location.url,
+                    contentType: "image/svg+xml",
+                    downloadName: name,
+                    inline: true,
+                    supportsRange: true,
+                    action: "file-preview"
+                )
+                response.headers["Cache-Control"] = "private, max-age=3600"
+                completion(response)
+                return
+            }
+            guard PitHubMIME.isImage(name) else {
+                throw FilePitError.invalidOperation("该文件不是图片")
+            }
+            let attributes = try? fm.attributesOfItem(atPath: location.url.path)
+            let mtime = (attributes?[.modificationDate] as? Date) ?? Date.distantPast
+            let cacheKey = "file-preview:\(location.url.path):\(mtime.timeIntervalSince1970):\(pixel)"
+            if let host, let cached = host.thumbnailCache.data(forKey: cacheKey) {
+                completion(jpegResponse(cached, maxAge: 3600))
+                return
+            }
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let data = PitHubImagePreview.jpegData(from: location.url, maxPixel: pixel) else {
+                    completion(HTTPResponse.error(415, "该图片格式无法在浏览器中预览，请下载查看"))
+                    return
+                }
+                if let host = self?.host {
+                    _ = host.thumbnailCache.store(data: data, forKey: cacheKey)
+                }
+                completion(self?.jpegResponse(data, maxAge: 3600)
+                    ?? HTTPResponse.error(503, "服务未就绪"))
+            }
+        } catch let error as FilePitError {
+            completion(error.response())
+        } catch {
+            completion(HTTPResponse.error(500, error.localizedDescription))
+        }
+    }
+
+    private func jpegResponse(_ data: Data, maxAge: Int) -> HTTPResponse {
+        var response = HTTPResponse(status: 200, body: .data(data), logAction: "file-preview")
+        response.headers["Content-Type"] = "image/jpeg"
+        response.headers["Cache-Control"] = "private, max-age=\(maxAge)"
+        return response
+    }
+
     func zipResponse(path: String, role: PitHubRole, settings: PitHubSettings,
                      completion: @escaping (HTTPResponse) -> Void) {
         guard settings.filePit.allowZipDownload else {

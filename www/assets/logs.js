@@ -24,6 +24,14 @@ function isAdmin() { return state.auth && state.auth.role === 'admin'; }
 function isUser() { return state.auth && (state.auth.role === 'user' || state.auth.role === 'admin'); }
 
 export async function renderLogs() {
+  if (!isUser()) {
+    renderShell('logs', '访问日志', `
+      <div class="glass p-8 text-center">
+        <div class="text-[0.95rem] font-semibold mb-2">需要用户或管理员权限</div>
+        <div class="text-[0.72rem] muted">访客不能查看访问日志。</div>
+      </div>`);
+    return;
+  }
   renderShell('logs', '访问日志', layoutHTML());
   bind();
   await load(true);

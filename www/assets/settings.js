@@ -13,6 +13,14 @@ const view = { settings: null, guide: null, albums: [], error: '' };
 function isAdmin() { return state.auth && state.auth.role === 'admin'; }
 
 export async function renderSettings() {
+  if (!isAdmin()) {
+    renderShell('settings', '设置', `
+      <div class="glass p-8 text-center">
+        <div class="text-[0.95rem] font-semibold mb-2">仅管理员可访问</div>
+        <div class="text-[0.72rem] muted">访客与普通用户不能查看端口、密码、隧道令牌等配置。</div>
+      </div>`);
+    return;
+  }
   renderShell('settings', '设置', `<div class="glass p-8 text-center text-[0.78rem] muted">正在读取设置…</div>`);
   try {
     const data = await api.settings();
@@ -377,7 +385,7 @@ function render() {
       <section class="glass p-5">
         <div class="section-title mb-2">关于</div>
         <div class="grid sm:grid-cols-3 gap-3 text-[0.7rem]">
-          <div><span class="muted">版本：</span><span class="mono">1.0.0</span></div>
+          <div><span class="muted">版本：</span><span class="mono">1.1.0</span></div>
           <div><span class="muted">WebDAV：</span><span class="mono">${escapeHtml((state.status?.shareBaseURL || '') + '/webdav')}</span></div>
           <div><span class="muted">默认密码：</span><span class="mono">pithub</span></div>
         </div>

@@ -57,10 +57,10 @@ extension PitHubRuntime {
         }
 
         if path == "/api/settings" {
+            guard role == .admin else { return HTTPResponse.error(403, "设置仅管理员可查看") }
             if request.method == "GET" {
                 return HTTPResponse.json(["ok": true, "settings": settingsStore.current.publicJSON()])
             }
-            guard role == .admin else { return HTTPResponse.error(403, "需要管理员权限") }
             guard request.method == "POST" || request.method == "PUT" else {
                 return HTTPResponse.error(405, "仅支持 GET / POST")
             }
@@ -125,6 +125,7 @@ extension PitHubRuntime {
         }
 
         if path == "/api/cache/stats" {
+            guard role == .admin else { return HTTPResponse.error(403, "缓存配置仅管理员可见") }
             guard request.method == "GET" else { return HTTPResponse.error(405, "仅支持 GET") }
             return HTTPResponse.json([
                 "ok": true,
@@ -149,6 +150,7 @@ extension PitHubRuntime {
         }
 
         if path == "/api/qr" {
+            guard role >= .user else { return HTTPResponse.error(403, "访客不显示访问地址") }
             guard request.method == "GET" else { return HTTPResponse.error(405, "仅支持 GET") }
             let content = request.query["url"]?.trimmed ?? shareBaseURL
             guard let png = PitHubQRCode.pngData(for: content, pixelSize: 600) else {
@@ -161,6 +163,7 @@ extension PitHubRuntime {
         }
 
         if path == "/api/tunnel/guide" {
+            guard role == .admin else { return HTTPResponse.error(403, "隧道配置仅管理员可见") }
             guard request.method == "GET" else { return HTTPResponse.error(405, "仅支持 GET") }
             let settings = settingsStore.current
             let ip = PitHubNetworkInfo.primaryIPv4() ?? "<iPhone 的局域网 IP>"
@@ -218,9 +221,7 @@ extension PitHubRuntime {
             "guestEnabled": settings.guestEnabled,
             "defaultPassword": settings.isDefaultPassword,
             "serverName": settings.bonjourName,
-            "version": "1.0.0",
-            "tunnelActive": tunnelStatus.active,
-            "publicURL": tunnelStatus.publicURL ?? ""
+            "version": "1.1.0"
         ])
     }
 

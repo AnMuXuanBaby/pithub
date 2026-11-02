@@ -248,8 +248,8 @@ function renderDashboard() {
             </div>
           </div>
           <div class="flex items-center gap-2 lg:ml-auto flex-wrap">
-            <a href="#/settings" class="btn btn-ghost">${icon('settings', 'w-4 h-4')}设置</a>
-            <a href="#/logs" class="btn btn-ghost">${icon('logs', 'w-4 h-4')}日志</a>
+            ${isAdmin() ? `<a href="#/settings" class="btn btn-ghost">${icon('settings', 'w-4 h-4')}设置</a>` : ''}
+            ${isUser() ? `<a href="#/logs" class="btn btn-ghost">${icon('logs', 'w-4 h-4')}日志</a>` : ''}
             <button class="btn btn-primary" id="dash-refresh">${icon('refresh', 'w-4 h-4')}刷新状态</button>
           </div>
         </div>
@@ -267,7 +267,7 @@ function renderDashboard() {
         ${statTile('隧道流量', s.trafficText ? s.trafficText.tunnel : formatBytes((traffic.tunnelIn || 0) + (traffic.tunnelOut || 0)), 'globe', { color: 'var(--muted)' })}
       </section>
 
-      <section class="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,.75fr)] gap-4">
+      <section class="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,.75fr)] gap-4 ${isUser() ? '' : 'hidden'}">
         <div class="glass p-5">
           <div class="flex items-center gap-2 mb-4">
             <div class="section-title">外网隧道</div>
@@ -337,6 +337,14 @@ function renderDashboard() {
 
   bindDashboard();
   startDashboardTimer();
+  if (!isUser()) {
+    // 访客只读：不加载二维码、不请求任何配置接口
+    const guestNote = document.createElement('div');
+    guestNote.className = 'glass p-4 text-[0.72rem]';
+    guestNote.style.color = 'var(--muted)';
+    guestNote.textContent = '访客只读模式：可以浏览共享文件与相册，不能上传、修改、查看设置或执行快捷指令。';
+    document.querySelector('main')?.prepend(guestNote);
+  }
 }
 
 function formatUptime(seconds) {
@@ -392,6 +400,7 @@ function bindDashboard() {
     if (tunnel) tunnel.className = `btn btn-sm ${mode === 'tunnel' ? 'btn-primary' : ''}`;
     loadQR(mode);
   };
+  if (!isUser()) return;
   document.getElementById('qr-lan')?.addEventListener('click', () => setMode('lan'));
   document.getElementById('qr-tunnel')?.addEventListener('click', () => {
     if (!state.status?.tunnel?.publicURL) return;

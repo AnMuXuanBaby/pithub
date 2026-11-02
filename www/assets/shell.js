@@ -17,6 +17,14 @@ function pluginDescriptor(id) {
   return (state.plugins || []).find((plugin) => plugin.id === id) || null;
 }
 
+function canAccess(item) {
+  const role = state.auth && state.auth.role;
+  if (item.key === 'settings') return role === 'admin';
+  if (item.key === 'logs') return role === 'user' || role === 'admin';
+  if (item.key === 'dash') return role === 'user' || role === 'admin';
+  return true;
+}
+
 function navItems() {
   return BASE_NAV.map((item) => {
     if (!item.plugin) return item;
@@ -26,7 +34,7 @@ function navItems() {
       enabled: descriptor ? descriptor.enabled : false,
       exists: Boolean(descriptor)
     };
-  });
+  }).filter(canAccess);
 }
 
 function navLink(item, active, compact = false) {
@@ -76,7 +84,7 @@ function sidebar(active) {
           <button class="btn btn-ghost btn-sm btn-icon" data-logout title="退出登录">${icon('logout', 'w-4 h-4')}</button>
         </div>
       </div>
-      <div class="text-[0.6rem] muted-2 px-1">v1.0.0 · 数据全部保存在本机</div>
+      <div class="text-[0.6rem] muted-2 px-1">v1.1.0 · 数据全部保存在本机</div>
     </div>
   </aside>`;
 }

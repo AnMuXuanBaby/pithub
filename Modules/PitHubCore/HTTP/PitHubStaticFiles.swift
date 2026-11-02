@@ -60,14 +60,16 @@ public final class PitHubWebAssets {
             return nil
         }
 
-        let isHTML = target.pathExtension.lowercased() == "html"
+        let ext = target.pathExtension.lowercased()
+        let noCache = ["html", "js", "mjs", "css", "webmanifest", "json"].contains(ext)
         var response = HTTPResponse.file(
             url: target,
             contentType: PitHubMIME.type(for: target.lastPathComponent),
             supportsRange: true,
             action: "static"
         )
-        response.headers["Cache-Control"] = isHTML ? "no-cache" : "public, max-age=3600"
+        // 更新 IPA 后必须能拿到新的 JS/CSS，避免浏览器继续使用旧缓存
+        response.headers["Cache-Control"] = noCache ? "no-cache" : "public, max-age=3600"
         return response
     }
 
