@@ -1,0 +1,203 @@
+name: PitHub
+
+options:
+    bundleIdPrefix: com.pithub
+    # 注意：需求书写的是 iOS 17，但实际设备是 iPhone 13 / iOS 16.0.2。
+    # 为了让产出的 IPA 能装到这台手机上，这里把部署目标设为 16.0，
+    # 代码中只使用 iOS 16 可用的 API；如后续全量升级到 iOS 17，改这一处即可。
+    deploymentTarget:
+        iOS: "16.0"
+    createIntermediateGroups: true
+    groupSortPosition: top
+    generateEmptyDirectories: true
+
+settings:
+    base:
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        ENABLE_BITCODE: "NO"
+        ALWAYS_SEARCH_USER_PATHS: "NO"
+        CLANG_ENABLE_MODULES: "YES"
+        SWIFT_EMIT_LOC_STRINGS: "NO"
+        DEVELOPMENT_LANGUAGE: zh-Hans
+        # 默认不强制签名，方便 CI 产出未签名 IPA；
+        # 本地用 Xcode 导出签名 IPA 时，在 Xcode 里选择自己的 Team 即可覆盖。
+        CODE_SIGN_STYLE: Automatic
+
+targets:
+    PitHubCore:
+        type: framework
+        platform: iOS
+        sources:
+            - path: Modules/PitHubCore
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.core
+                PRODUCT_NAME: PitHubCore
+                DEFINES_MODULE: "YES"
+                SKIP_INSTALL: "YES"
+                BUILD_LIBRARY_FOR_DISTRIBUTION: "NO"
+                GENERATE_INFOPLIST_FILE: "YES"
+                APPLICATION_EXTENSION_API_ONLY: "NO"
+                MARKETING_VERSION: "1.0.0"
+                CURRENT_PROJECT_VERSION: "1"
+
+    PitHubFilePit:
+        type: framework
+        platform: iOS
+        sources:
+            - path: Modules/PitHubFilePit
+        dependencies:
+            - target: PitHubCore
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.filepit
+                PRODUCT_NAME: PitHubFilePit
+                DEFINES_MODULE: "YES"
+                SKIP_INSTALL: "YES"
+                BUILD_LIBRARY_FOR_DISTRIBUTION: "NO"
+                GENERATE_INFOPLIST_FILE: "YES"
+
+    PitHubPhotoNode:
+        type: framework
+        platform: iOS
+        sources:
+            - path: Modules/PitHubPhotoNode
+        dependencies:
+            - target: PitHubCore
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.photonode
+                PRODUCT_NAME: PitHubPhotoNode
+                DEFINES_MODULE: "YES"
+                SKIP_INSTALL: "YES"
+                BUILD_LIBRARY_FOR_DISTRIBUTION: "NO"
+                GENERATE_INFOPLIST_FILE: "YES"
+
+    PitHubClipHub:
+        type: framework
+        platform: iOS
+        sources:
+            - path: Modules/PitHubClipHub
+        dependencies:
+            - target: PitHubCore
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.cliphub
+                PRODUCT_NAME: PitHubClipHub
+                DEFINES_MODULE: "YES"
+                SKIP_INSTALL: "YES"
+                BUILD_LIBRARY_FOR_DISTRIBUTION: "NO"
+                GENERATE_INFOPLIST_FILE: "YES"
+
+    PitHubDashLink:
+        type: framework
+        platform: iOS
+        sources:
+            - path: Modules/PitHubDashLink
+        dependencies:
+            - target: PitHubCore
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.dashlink
+                PRODUCT_NAME: PitHubDashLink
+                DEFINES_MODULE: "YES"
+                SKIP_INSTALL: "YES"
+                BUILD_LIBRARY_FOR_DISTRIBUTION: "NO"
+                GENERATE_INFOPLIST_FILE: "YES"
+
+    PitHub:
+        type: application
+        platform: iOS
+        sources:
+            - path: PitHub
+              excludes:
+                  - Info.plist
+                  - PrivacyInfo.xcprivacy
+            - path: PitHub/PrivacyInfo.xcprivacy
+              buildPhase: resources
+            # 以 folder reference 的形式内嵌整个 www 目录，
+            # 运行时由内置 HTTP 服务从 Bundle.main/www 读取静态资源。
+            - path: www
+              type: folder
+              buildPhase: resources
+        dependencies:
+            - target: PitHubCore
+              embed: true
+            - target: PitHubFilePit
+              embed: true
+            - target: PitHubPhotoNode
+              embed: true
+            - target: PitHubClipHub
+              embed: true
+            - target: PitHubDashLink
+              embed: true
+        settings:
+            base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.pithub.app
+                PRODUCT_NAME: PitHub
+                TARGETED_DEVICE_FAMILY: "1,2"
+                ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+                MARKETING_VERSION: "1.0.0"
+                CURRENT_PROJECT_VERSION: "1"
+                GENERATE_INFOPLIST_FILE: "NO"
+                INFOPLIST_FILE: PitHub/Info.plist
+                ENABLE_PREVIEWS: "YES"
+                SUPPORTS_MACCATALYST: "NO"
+        info:
+            path: PitHub/Info.plist
+            properties:
+                CFBundleDisplayName: PitHub
+                CFBundleShortVersionString: "1.0.0"
+                CFBundleVersion: "1"
+                LSRequiresIPhoneOS: true
+                UILaunchScreen: {}
+                UIApplicationSupportsIndirectInputEvents: true
+                UISupportedInterfaceOrientations:
+                    - UIInterfaceOrientationPortrait
+                    - UIInterfaceOrientationLandscapeLeft
+                    - UIInterfaceOrientationLandscapeRight
+                UISupportedInterfaceOrientations~ipad:
+                    - UIInterfaceOrientationPortrait
+                    - UIInterfaceOrientationPortraitUpsideDown
+                    - UIInterfaceOrientationLandscapeLeft
+                    - UIInterfaceOrientationLandscapeRight
+                NSPhotoLibraryUsageDescription: PitHub 需要读取相册，把照片和视频通过局域网或自建隧道分享给你自己的设备。照片始终保存在本机，不会被上传到任何第三方服务器。
+                NSPhotoLibraryReadAccessUsageDescription: PitHub 需要只读访问相册，用于 PhotoNode 相册浏览与原图下载。
+                NSLocalNetworkUsageDescription: PitHub 需要本地网络权限，用于在 iPhone 上启动文件/相册 HTTP 服务，并通过 Bonjour 在同一 Wi-Fi 下自动被发现。
+                NSBonjourServices:
+                    - _pithub._tcp
+                UIBackgroundModes:
+                    - fetch
+                # 可选（有风险）：加入 audio 可让 App 在锁屏后多存活一段时间，
+                # 但“静默播放音频维持后台”有被 App Store 拒绝的风险，默认不开启。
+                # UIBackgroundModes:
+                #   - fetch
+                #   - audio
+                UIFileSharingEnabled: true
+                LSSupportsOpeningDocumentsInPlace: true
+                LSApplicationQueriesSchemes:
+                    - shortcuts
+                CFBundleURLTypes:
+                    - CFBundleURLName: com.pithub.app
+                      CFBundleURLSchemes:
+                          - pithub
+                ITSAppUsesNonExemptEncryption: false
+                NSAppTransportSecurity:
+                    NSAllowsLocalNetworking: true
+                # 让 App 在后台被唤醒时仍能响应（系统允许的范围内）
+                UIRequiresFullScreen: false
+schemes:
+    PitHub:
+        build:
+            targets:
+                PitHub: all
+                PitHubCore: all
+                PitHubFilePit: all
+                PitHubPhotoNode: all
+                PitHubClipHub: all
+                PitHubDashLink: all
+        run:
+            config: Debug
+        archive:
+            config: Release

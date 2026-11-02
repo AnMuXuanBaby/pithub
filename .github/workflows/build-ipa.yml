@@ -1,0 +1,107 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          xcodegen generate
+          ls -la PitHub.xcodeproj
+
+      - name: Build unsigned app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project PitHub.xcodeproj \
+            -scheme PitHub \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath .build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log
+
+      - name: Inspect app bundle
+        run: |
+          APP=".build/Build/Products/Release-iphoneos/PitHub.app"
+          ls -la "$APP"
+          test -d "$APP/www" && echo "www embedded: yes"
+          test -d "$APP/Frameworks" && ls -la "$APP/Frameworks"
+          /usr/libexec/PlistBuddy -c "Print :NSBonjourServices" "$APP/Info.plist"
+
+      - name: Package IPA
+        run: |
+          APP=".build/Build/Products/Release-iphoneos/PitHub.app"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry PitHub.ipa Payload
+          ls -lh PitHub.ipa
+          unzip -l PitHub.ipa | head -n 30
+
+      - name: Package standalone frontend
+        run: |
+          rm -rf frontend-standalone
+          mkdir -p frontend-standalone/frontend-src
+          cp -R www frontend-standalone/
+          cp frontend-src/package.json frontend-src/tailwind.config.js frontend-src/input.css frontend-standalone/frontend-src/
+          zip -qry PitHub-frontend.zip frontend-standalone
+          ls -lh PitHub-frontend.zip
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Upload IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PitHub-unsigned-ipa
+          path: |
+            PitHub.ipa
+            PitHub-frontend.zip
+          if-no-files-found: error
+
+      - name: Publish release
+        if: success() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: PitHub-Latest
+          name: PitHub 最新构建
+          make_latest: true
+          body: |
+            **未签名 IPA**，适合 TrollStore（无需证书、无需越狱）或自行重签名后侧载。
+
+            - 构建号：${{ github.run_number }}
+            - 提交：${{ github.sha }}
+            - 最低系统：iOS 16.0（与 iPhone 13 / iOS 16.0.2 兼容）
+            - 内含 `www` 静态前端与 5 个 Embedded Frameworks
+
+            安装与签名步骤见仓库 `docs/BUILD_IPA.md`、`docs/SIDELOAD.md`。
+          files: |
+            PitHub.ipa
+            PitHub-frontend.zip

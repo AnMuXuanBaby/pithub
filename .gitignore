@@ -1,0 +1,27 @@
+# Xcode
+PitHub.xcodeproj/
+*.xcworkspace/
+build/
+DerivedData/
+.build/
+dist/
+*.ipa
+Payload/
+*.dSYM/
+*.xcarchive
+
+# 日志与临时文件
+*.log
+*.tmp
+.DS_Store
+
+# Node / Tailwind
+node_modules/
+frontend-src/node_modules/
+package-lock.json
+
+# 本地签名文件（不要提交到公开仓库）
+*.mobileprovision
+*.p12
+/ExportOptions*.plist
+certificates/

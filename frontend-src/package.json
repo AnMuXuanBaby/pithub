@@ -1,0 +1,13 @@
+{
+  "name": "pithub-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PitHub 内嵌网页前端（Tailwind CSS v3 + Vanilla JS）",
+  "scripts": {
+    "build": "tailwindcss -i ./input.css -o ../www/assets/app.css --minify",
+    "watch": "tailwindcss -i ./input.css -o ../www/assets/app.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "pithub-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PitHub Relay：把 iPhone 上的 HTTP 服务映射为公网地址",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
