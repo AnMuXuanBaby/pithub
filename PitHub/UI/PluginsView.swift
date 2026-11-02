@@ -80,7 +80,7 @@ struct PluginsView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(PitHubPalette.accent.opacity(0.14))
                 .frame(width: 46, height: 46)
-            Image(systemName: descriptor.icon)
+            Image(systemName: descriptor.systemImage)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(PitHubPalette.accent)
         }
