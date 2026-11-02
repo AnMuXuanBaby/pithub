@@ -317,7 +317,6 @@ final class PitHubHTTPConnection {
             }
             isFile = true
             fileURL = url
-            fileContentLength = size
             contentLength = size
             if response.supportsRange, let rawRange = currentRequest?.header("range") {
                 switch Self.parseRange(rawRange, size: size) {
@@ -420,7 +419,7 @@ final class PitHubHTTPConnection {
                 return
             }
             let chunkSize = Int(min(Int64(256 * 1024), remaining))
-            guard let chunk = try? handle.read(upToCount: chunkSize), let data = chunk, !data.isEmpty else {
+            guard let data = try? handle.read(upToCount: chunkSize), !data.isEmpty else {
                 try? handle.close()
                 flushTraffic()
                 finish()
@@ -496,7 +495,7 @@ final class PitHubHTTPConnection {
         bytesOut = 0
     }
 
-    private func cancel() {
+    func cancel() {
         guard !didFinish else { return }
         didFinish = true
         timeoutWorkItem?.cancel()

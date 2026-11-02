@@ -106,7 +106,7 @@ public final class PitHubHTTPServer {
         listener?.cancel()
         listener = nil
 
-        let current: [PitHubHTTPConnection]
+        var current: [PitHubHTTPConnection] = []
         stateQueue.sync {
             current = Array(connections.values)
             connections.removeAll()

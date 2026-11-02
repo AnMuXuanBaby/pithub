@@ -60,7 +60,7 @@ public final class PitHubWebAssets {
             return nil
         }
 
-        let isHTML = target.pathExtensionLowercased == "html"
+        let isHTML = target.pathExtension.lowercased() == "html"
         var response = HTTPResponse.file(
             url: target,
             contentType: PitHubMIME.type(for: target.lastPathComponent),
